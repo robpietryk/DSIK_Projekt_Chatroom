@@ -3,18 +3,14 @@ import select
 
 
 
-######################DO ZROBIENIA#########################
-#1. wysylanie spowrotem do klientow TAK ZEBY DZIALALO
+###################### DO ZROBIENIA ###############################
 
+#1. wysylanie duzego pliku (min 15MB)
+#2. pozmieniac nazwy zmiennych, funkcji itp i lekko poprzestawiac
+# strukture zeby nie bylo widac ze kradzony kod XD
+#3. ewentualny debugging, testowanie itp. Po prostu potestuj i sprawdz czy nie ma jakichs bledow ktorych nie wykrylem
 
-
-
-
-
-
-
-
-
+###################################################################
 
 HEADER_LENGTH = 1024
 
@@ -48,59 +44,56 @@ def receive_message(client_socket):
         if not len(inc_message):
             return False
 
-
         return {'data': inc_message.decode('utf-8').strip()}
 
     except:
         return False
 
-while True:
 
+while True:
     read_sockets, _, exception_sockets = select.select(sockets_list, [], sockets_list)
 
     for notified_socket in read_sockets:
-
         if notified_socket == server_socket:
 
             client_socket, client_address = server_socket.accept()
 
-            print("Connected: {}".format(client_address))
-
             user = receive_message(client_socket)
 
             if user is False:
-                print("ERRORUSER")
+                print("errorUser")
                 continue
 
             sockets_list.append(client_socket)
 
             clients[client_socket] = user
 
-            print('Accepted new connection from {}, username: {}'.format(client_address, user["data"]))
+            print('New connection from {}, username: {}'.format(client_address, user["data"]))
 
         else:
 
             message = receive_message(notified_socket)
 
             if message is False:
-                print('{} disconnected'.format(clients[notified_socket]))
+                str = clients[notified_socket]
+                print('{} disconnected'.format(str['data']))
                 sockets_list.remove(notified_socket)
                 del clients[notified_socket]
                 continue
 
             user = clients[notified_socket]
+            if message["data"] == "\n" or message["data"] == "" or message["data"] == " ":
+                for client_socket in clients:
+                    if client_socket == notified_socket:
+                        client_socket.send("\0".encode('utf-8'))
+            else:
+                print('Message from {}: {}'.format(user["data"], message["data"]))
 
-            print('Wiadomosc od {}: {}'.format(user["data"], message["data"]))
+                for client_socket in clients:
 
-            for client_socket in clients:
-
-                if client_socket != notified_socket:
-                    #client_socket.send(user['header'] + user["data"] + message['header'] + message['data'])
-                    continue
-
-                #print("KONIEC")
-    for notified_socket in exception_sockets: #mozna potem usunac
-
-        sockets_list.remove(notified_socket)
-s
-        del clients[notified_socket]
+                    if client_socket != notified_socket:
+                        answer = '{} > {}\n'.format(user["data"], message['data'])
+                        client_socket.send(answer.encode('utf-8'))
+                        continue
+                    elif client_socket == notified_socket:
+                        client_socket.send("\0".encode('utf-8'))
